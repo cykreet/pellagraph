@@ -1,0 +1,13 @@
+{
+	"editor.defaultFormatter": "biomejs.biome",
+  "editor.formatOnSave": true,
+	"tailwindCSS.includeLanguages": {
+		"javascript": "javascript",
+		"javascriptreact": "javascriptreact",
+		"typescriptreact": "typescriptreact",
+		"html": "HTML"
+	},
+	"editor.quickSuggestions": {
+		"strings": true
+	},
+}

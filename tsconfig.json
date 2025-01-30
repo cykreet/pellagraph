@@ -1,0 +1,29 @@
+{
+	"compilerOptions": {
+		"moduleDetection": "force",
+		"allowJs": true,
+		"module": "ESNext",
+		"target": "ES2022",
+		"lib": ["DOM", "DOM.Iterable", "ESNext"],
+		"esModuleInterop": true,
+		"noUncheckedIndexedAccess": false,
+		"jsx": "react-jsx",
+		"jsxImportSource": "react",
+		"baseUrl": "./",
+		"declaration": false,
+		"paths": {
+			"#root/*": ["./src/*"],
+			"react": ["./node_modules/@types/react/index.d.ts"]
+		},
+		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"noEmit": true,
+		"strict": true,
+		"skipLibCheck": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"noPropertyAccessFromIndexSignature": false
+	}
+}
