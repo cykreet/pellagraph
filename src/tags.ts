@@ -2,121 +2,359 @@ export interface PellaTag {
 	name: string;
 	shortDescription: string;
 	executionType: PellaTagType;
-	inputParameters: [
-		{
-			name: string;
-			type: string;
-			description: string;
-		},
-	];
-	outputParameters: [
-		{
-			name: string;
-			type: string;
-			description: string;
-		},
-	];
+	inputParameters?: {
+		name: string;
+		type: PellaNodeEntityType;
+	}[];
+	outputParameters?: {
+		name: string;
+		type: PellaNodeEntityType;
+	}[];
 }
+
+export type PellaNodeEntityType = PellaEntityType | "string" | "number" | "boolean";
 
 export enum PellaEntityType {
 	Channel,
 	User,
 	Array,
+	Role,
 }
 
 export enum PellaTagType {
 	Getter,
 	Setter,
-	Void,
+	Function,
 }
 
-export const atlasTags = [
+export const atlasTags: PellaTag[] = [
 	{
-		aliases: ["message.shareLink"],
-		description: "Get the link to a message",
-		disableInLoop: false,
-		expensive: false,
-		name: "message.link",
+		name: "store.set",
+		shortDescription: "Adds an item to the store.",
+		executionType: PellaTagType.Setter,
+		inputParameters: [
+			{
+				name: "Key",
+				type: "string",
+			},
+			{
+				name: "Value",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: [],
-		description: "Get the ID of the author of the message",
-		disableInLoop: false,
-		expensive: false,
-		name: "message.authorId",
+		name: "store.get",
+		shortDescription: "Gets an item from the store.",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Key",
+				type: "string",
+			},
+		],
+		outputParameters: [
+			{
+				name: "Value",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: [],
-		description: "Get the ID of the channel the message was sent in",
-		disableInLoop: false,
-		expensive: false,
-		name: "message.channelId",
+		name: "store.delete",
+		shortDescription: "Deletes an item from the store.",
+		executionType: PellaTagType.Function,
+		inputParameters: [
+			{
+				name: "Key",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: [],
-		description: "Get the ID of the message this message is referencing",
-		disableInLoop: false,
-		expensive: false,
-		name: "message.referenceId",
+		name: "role.id",
+		shortDescription: "Gets the ID of a given role",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Id",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: ["user.idname"],
-		description: "Get the username#discriminator combination for the user.",
-		disableInLoop: false,
-		expensive: false,
-		name: "user.tag",
+		name: "role.name",
+		shortDescription: "Gets the name of a given role",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Name",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: [],
-		description: "Get the users discriminator.",
-		disableInLoop: false,
-		expensive: false,
-		name: "user.discriminator",
+		name: "role.mention",
+		shortDescription: "Returns the role @mention",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "roles",
+				type: PellaEntityType.Role,
+			},
+			{
+				name: "Allow mention",
+				type: "boolean",
+			},
+		],
+		outputParameters: [
+			{
+				name: "Mention",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: ["user.roleAdd"],
-		description: "Give the user a role",
-		disableInLoop: false,
-		tagType: PellaTagType.Void,
-		expensive: true,
-		name: "user.addRole",
+		name: "role.position",
+		shortDescription: "Gets the position of a role",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Position",
+				type: "number",
+			},
+		],
 	},
 	{
-		aliases: ["user.roleRemove"],
-		description: "Take a role from a user",
-		tagType: PellaTagType.Void,
-		disableInLoop: false,
-		expensive: true,
-		name: "user.removeRole",
+		name: "role.color",
+		shortDescription: "Gets the hex code of a role",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+			{
+				name: "Decimal",
+				type: "boolean",
+			},
+		],
+		outputParameters: [
+			{
+				name: "Color",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: ["user.roleRemove"],
-		description: "Take a role from a user",
-		tagType: PellaTagType.Void,
-		disableInLoop: false,
-		expensive: true,
-		name: "user.removeRole",
+		name: "role.managed",
+		shortDescription: "Returns true for managed roles (e.g. Server Boost and Bot roles)",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Managed",
+				type: "boolean",
+			},
+		],
 	},
 	{
-		aliases: ["user.hasPermissions"],
-		description: "Check if the user has a permission",
-		tagType: PellaTagType.Getter,
-		disableInLoop: false,
-		expensive: false,
-		name: "user.hasPermission",
+		name: "role.mentionable",
+		shortDescription: "Returns a boolean indicating whether the role can be mentioned",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Mentionable",
+				type: "boolean",
+			},
+		],
 	},
 	{
-		aliases: ["user.hasPermissions"],
-		description: "Check if the user has a permission",
-		disableInLoop: false,
-		expensive: false,
-		name: "user.hasPermission",
+		name: "role.createdAt",
+		shortDescription: "Returns the date the role was created",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Created at",
+				type: "string",
+			},
+		],
 	},
 	{
-		aliases: ["user.color"],
-		description: "Get the colour of the user based on their highest role",
-		disableInLoop: false,
-		expensive: false,
-		name: "user.colour",
+		name: "role.hasPermission",
+		shortDescription: "Check whether the role has the specified permission",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Permission",
+				type: "string",
+			},
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Has permission",
+				type: "boolean",
+			},
+		],
+	},
+	{
+		name: "role.hoisted",
+		shortDescription: "Returns a boolean indicating whether the role is hoisted above other roles",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Hoisted",
+				type: "boolean",
+			},
+		],
+	},
+	{
+		name: "role.edit",
+		shortDescription: "Edit the role properties",
+		executionType: PellaTagType.Setter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+			{
+				name: "Name",
+				type: "string",
+			},
+			{
+				name: "Color",
+				type: "string",
+			},
+			{
+				name: "Reason",
+				type: "string",
+			},
+		],
+		outputParameters: [
+			{
+				name: "Success",
+				type: "boolean",
+			},
+		],
+	},
+	{
+		name: "role.create",
+		shortDescription: "Create a new role",
+		executionType: PellaTagType.Function,
+		inputParameters: [
+			{
+				name: "Name",
+				type: "string",
+			},
+			{
+				name: "Color",
+				type: "string",
+			},
+			{
+				name: "Reason",
+				type: "string",
+			},
+			{
+				name: "Return id",
+				type: "boolean",
+			},
+		],
+		outputParameters: [
+			{
+				name: "Role id",
+				type: "string",
+			},
+		],
+	},
+	{
+		name: "role.delete",
+		shortDescription: "Delete a role",
+		executionType: PellaTagType.Function,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+			{
+				name: "Reason",
+				type: "string",
+			},
+		],
+		outputParameters: [
+			{
+				name: "Success",
+				type: "boolean",
+			},
+		],
+	},
+	{
+		name: "role.icon",
+		shortDescription: "Gets the icon of the role",
+		executionType: PellaTagType.Getter,
+		inputParameters: [
+			{
+				name: "Role",
+				type: PellaEntityType.Role,
+			},
+			{
+				name: "Size",
+				type: "number",
+			},
+			{
+				name: "Hash",
+				type: "boolean",
+			},
+		],
+		outputParameters: [
+			{
+				name: "icon",
+				type: "string",
+			},
+		],
 	},
 ];

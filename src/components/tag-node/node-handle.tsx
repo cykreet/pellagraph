@@ -1,19 +1,15 @@
 import { IconCircleDashed } from "@tabler/icons-react";
-import { type HandleProps, Handle } from "@xyflow/react";
-import { PellaEntityType, PellaTagType } from "../../tags";
+import { type Connection, type Edge, Handle, type HandleProps } from "@xyflow/react";
+import type { PellaNodeEntityType } from "../../tags";
+import { nodeParameterClasses } from "./colours";
 
 interface NodeParameterProps extends HandleProps {
 	label: string;
-	entityType: PellaEntityType | "string" | "number" | "boolean";
+	entityType: PellaNodeEntityType;
 }
 
-const nodeParameterColours = {
-	[PellaEntityType.Channel]: "blue-500",
-	[PellaEntityType.User]: "purple-500",
-	[PellaEntityType.Array]: "yellow-500",
-	string: "green-500",
-	number: "amber-500",
-	boolean: "red-500",
+const validateConnection = (edge: Connection | Edge): boolean => {
+	return edge.sourceHandle === edge.targetHandle;
 };
 
 export const NodeHandle = ({ children, ...rest }: HandleProps) => {
@@ -28,13 +24,13 @@ export const NodeHandle = ({ children, ...rest }: HandleProps) => {
 };
 
 export const NodeInputHandle = ({ children, label, ...props }: NodeParameterProps) => {
-	const paramColour = nodeParameterColours[props.entityType];
+	const paramClasses = nodeParameterClasses[props.entityType];
 
 	return (
-		<NodeHandle type="target" {...props}>
-			<div className="flex flex-row items-center align-middle text-white gap-2 pointer-events-none">
+		<NodeHandle type="target" isValidConnection={validateConnection} id={props.entityType.toString()} {...props}>
+			<div className="flex flex-row items-center align-middle text-white space-x-2 pointer-events-none">
 				{/* {(connected && <IconCircle className="w-4 h-4 fill-white stroke-none" />) || ( */}
-				<IconCircleDashed className="w-4 h-4 stroke-2" style={{ stroke: `var(--color-${paramColour})` }} />
+				<IconCircleDashed className={`w-4 h-4 stroke-2 ${paramClasses.stroke}`} />
 				{/* // )} */}
 				<span className="text-xs">{label}</span>
 			</div>
@@ -43,14 +39,14 @@ export const NodeInputHandle = ({ children, label, ...props }: NodeParameterProp
 };
 
 export const NodeOutputHandle = ({ children, label, ...props }: NodeParameterProps) => {
-	const paramColour = nodeParameterColours[props.entityType];
+	const paramClasses = nodeParameterClasses[props.entityType];
 
 	return (
-		<NodeHandle type="source" {...props}>
+		<NodeHandle type="source" isValidConnection={validateConnection} id={props.entityType.toString()} {...props}>
 			<div className="flex flex-row items-center align-middle text-white gap-2 pointer-events-none">
-				{/* <span className="text-sm">{label}</span> */}
+				<span className="text-xs text-right">{label}</span>
 				{/* {(connected && <IconCircle className="w-4 h-4 fill-white stroke-none" />) || ( */}
-				<IconCircleDashed className="w-4 h-4 stroke-2" style={{ stroke: `var(--color-${paramColour})` }} />
+				<IconCircleDashed className={`w-4 h-4 stroke-2 ${paramClasses.stroke}`} />
 				{/* )} */}
 			</div>
 		</NodeHandle>

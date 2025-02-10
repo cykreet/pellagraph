@@ -17,29 +17,13 @@ import "@xyflow/react/dist/style.css";
 import { useCallback, useMemo, useState } from "react";
 import { PellaView } from "./components/pella-view/pella-view";
 import { TagNode } from "./components/tag-node/tag-node";
-import { atlasTags, PellaTagType } from "./tags";
 import { TagSelector } from "./components/tag-selector/tag-selector";
-
-// 1. create all possible nodes from tags
-// 2. add nodes to context menu
-// 3. transpile node graph back to tag script
-
-const initialNodes: Node[] = atlasTags.map((tag, index) => {
-	return {
-		id: index.toString(),
-		data: {
-			name: tag.name,
-			shortDescription: tag.description,
-			tagType: tag.tagType ?? PellaTagType.Getter,
-		},
-		position: { x: 0, y: 300 * index },
-		type: "tag",
-	};
-});
+import { atlasTags } from "./tags";
 
 export const App = () => {
-	const [nodes, setNodes] = useState<Node[]>(initialNodes);
+	const [nodes, setNodes] = useState<Node[]>([]);
 	const [edges, setEdges] = useState<Edge[]>([]);
+	const [outputLines, setOutputLines] = useState<string[]>([]);
 	const [contextOpen, setContextOpen] = useState(false);
 	const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
 	const nodeTypes = useMemo(() => ({ tag: TagNode }), []);
@@ -47,17 +31,23 @@ export const App = () => {
 	const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
 	const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
 	const onConnect: OnConnect = useCallback(
-		(connection) => setEdges((eds) => addEdge({ ...connection, type: ConnectionLineType.SmoothStep }, eds)),
+		(connection) =>
+			setEdges((eds) => {
+				const newEdges = addEdge({ ...connection, type: ConnectionLineType.SmoothStep }, eds);
+				setOutputLines(
+					newEdges.map((edge) => {
+						return edge.target;
+					}),
+				);
+
+				return newEdges;
+			}),
 		[],
 	);
 
-	const onTagSelect = () => {
-		setContextOpen(false);
-	};
-
 	return (
 		<div style={{ height: "100%" }}>
-			<PellaView />
+			<PellaView lines={outputLines} />
 			<ReactFlow
 				nodes={nodes}
 				nodeTypes={nodeTypes}
@@ -81,7 +71,12 @@ export const App = () => {
 				fitView
 			>
 				{contextOpen && (
-					<TagSelector onTagSelect={onTagSelect} position={contextPosition} onExit={() => setContextOpen(false)} />
+					<TagSelector
+						onTagSelect={() => setContextOpen(false)}
+						tags={atlasTags}
+						position={contextPosition}
+						onExit={() => setContextOpen(false)}
+					/>
 				)}
 				<Background />
 				<Controls showInteractive={false} showZoom={false} />
