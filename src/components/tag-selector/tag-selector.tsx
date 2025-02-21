@@ -1,12 +1,12 @@
 import { useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useState } from "react";
-import { PellaTagType, type PellaTag } from "../../tags";
+import { PellaExecutionType, type PellaTag } from "../../tags";
 import type { TagNodeProps } from "../tag-node/tag-node";
 
 const tagSelectionClasses = {
-	[PellaTagType.Function]: "border-blue-500 bg-blue-900 text-blue-200",
-	[PellaTagType.Getter]: "border-green-500 bg-green-900 text-green-200",
-	[PellaTagType.Setter]: "border-blue-500 bg-blue-900 text-blue-200",
+	[PellaExecutionType.Function]: "border-blue-500 bg-blue-900 text-blue-200",
+	[PellaExecutionType.Getter]: "border-green-500 bg-green-900 text-green-200",
+	[PellaExecutionType.Setter]: "border-blue-500 bg-blue-900 text-blue-200",
 };
 
 const TagSelection = ({ tag, onTagSelect }: { tag: PellaTag; onTagSelect: (tag: PellaTag) => void }) => {

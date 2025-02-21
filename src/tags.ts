@@ -1,9 +1,10 @@
 export interface PellaTag {
 	name: string;
 	shortDescription: string;
-	executionType: PellaTagType;
+	executionType: PellaExecutionType;
 	inputParameters?: {
 		name: string;
+		pellaName?: string;
 		type: PellaNodeEntityType;
 	}[];
 	outputParameters?: {
@@ -21,7 +22,7 @@ export enum PellaEntityType {
 	Role,
 }
 
-export enum PellaTagType {
+export enum PellaExecutionType {
 	Getter,
 	Setter,
 	Function,
@@ -31,7 +32,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "store.set",
 		shortDescription: "Adds an item to the store.",
-		executionType: PellaTagType.Setter,
+		executionType: PellaExecutionType.Setter,
 		inputParameters: [
 			{
 				name: "Key",
@@ -46,7 +47,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "store.get",
 		shortDescription: "Gets an item from the store.",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Key",
@@ -63,7 +64,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "store.delete",
 		shortDescription: "Deletes an item from the store.",
-		executionType: PellaTagType.Function,
+		executionType: PellaExecutionType.Function,
 		inputParameters: [
 			{
 				name: "Key",
@@ -74,7 +75,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.id",
 		shortDescription: "Gets the ID of a given role",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -91,7 +92,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.name",
 		shortDescription: "Gets the name of a given role",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -108,7 +109,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.mention",
 		shortDescription: "Returns the role @mention",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "roles",
@@ -129,7 +130,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.position",
 		shortDescription: "Gets the position of a role",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -146,7 +147,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.color",
 		shortDescription: "Gets the hex code of a role",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -167,7 +168,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.managed",
 		shortDescription: "Returns true for managed roles (e.g. Server Boost and Bot roles)",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -184,7 +185,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.mentionable",
 		shortDescription: "Returns a boolean indicating whether the role can be mentioned",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -201,7 +202,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.createdAt",
 		shortDescription: "Returns the date the role was created",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -218,7 +219,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.hasPermission",
 		shortDescription: "Check whether the role has the specified permission",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Permission",
@@ -239,7 +240,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.hoisted",
 		shortDescription: "Returns a boolean indicating whether the role is hoisted above other roles",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",
@@ -256,22 +257,26 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.edit",
 		shortDescription: "Edit the role properties",
-		executionType: PellaTagType.Setter,
+		executionType: PellaExecutionType.Setter,
 		inputParameters: [
 			{
 				name: "Role",
+				pellaName: "role",
 				type: PellaEntityType.Role,
 			},
 			{
 				name: "Name",
+				pellaName: "name",
 				type: "string",
 			},
 			{
 				name: "Color",
+				pellaName: "color",
 				type: "string",
 			},
 			{
 				name: "Reason",
+				pellaName: "reason",
 				type: "string",
 			},
 		],
@@ -285,7 +290,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.create",
 		shortDescription: "Create a new role",
-		executionType: PellaTagType.Function,
+		executionType: PellaExecutionType.Function,
 		inputParameters: [
 			{
 				name: "Name",
@@ -306,15 +311,15 @@ export const atlasTags: PellaTag[] = [
 		],
 		outputParameters: [
 			{
-				name: "Role id",
-				type: "string",
+				name: "Role",
+				type: PellaEntityType.Role,
 			},
 		],
 	},
 	{
 		name: "role.delete",
 		shortDescription: "Delete a role",
-		executionType: PellaTagType.Function,
+		executionType: PellaExecutionType.Function,
 		inputParameters: [
 			{
 				name: "Role",
@@ -335,7 +340,7 @@ export const atlasTags: PellaTag[] = [
 	{
 		name: "role.icon",
 		shortDescription: "Gets the icon of the role",
-		executionType: PellaTagType.Getter,
+		executionType: PellaExecutionType.Getter,
 		inputParameters: [
 			{
 				name: "Role",

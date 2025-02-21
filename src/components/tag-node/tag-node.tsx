@@ -1,13 +1,21 @@
 import { IconFunction, IconTriangle } from "@tabler/icons-react";
-import { type NodeProps, Position } from "@xyflow/react";
-import { type PellaTag, PellaTagType } from "../../tags";
+import { type Edge, type NodeProps, Position, useEdges, useUpdateNodeInternals } from "@xyflow/react";
+import { useEffect, useState } from "react";
+import { PellaExecutionType, type PellaTag } from "../../tags";
 import { NodeHandle, NodeInputHandle, NodeOutputHandle } from "./node-handle";
 
 export type TagNodeProps = NodeProps & { data: PellaTag };
 
-export const TagNode = ({ data }: TagNodeProps) => {
-	const isFunction = data.executionType === PellaTagType.Function;
-	const isPrimary = [PellaTagType.Function, PellaTagType.Setter].includes(data.executionType);
+export const TagNode = ({ data, id }: TagNodeProps) => {
+	const [connectedEdges, setConnectedEdges] = useState<Edge[]>();
+	const edges = useEdges();
+	useEffect(() => {
+		const nodeEdges = edges?.filter((edge) => edge.source === id || edge.target === id);
+		setConnectedEdges(nodeEdges);
+	}, [edges, id]);
+
+	const isFunction = data.executionType === PellaExecutionType.Function;
+	const isPrimary = [PellaExecutionType.Function, PellaExecutionType.Setter].includes(data.executionType);
 	// todo: getters colour should come from entity type colours
 	const tagBackground = isFunction ? "bg-blue-500" : "bg-green-500";
 	const tagColour = isFunction ? "text-blue-200" : "text-green-200";
@@ -26,42 +34,50 @@ export const TagNode = ({ data }: TagNodeProps) => {
 				</div>
 				<div className="px-4 h-full mb-4 space-y-2">
 					{isPrimary && (
-						<div className="flex flex-row justify-between">
+						<div className="flex flex-row justify-between w-full">
 							<NodeHandle
 								type="target"
 								position={Position.Left}
 								isValidConnection={(edge) => edge.sourceHandle === "exit"}
 								id="invoke"
 							>
-								<IconTriangle className="w-4 h-4 fill-white stroke-none rotate-90" />
+								{(connectedEdges?.some((edge) => edge.sourceHandle === "exit" && edge.target === id) && (
+									<IconTriangle className="w-4 h-4 fill-white stroke-none rotate-90" />
+								)) || <IconTriangle className="w-4 h-4 stroke-white stroke-2 rotate-90" />}
 							</NodeHandle>
 							<NodeHandle
 								type="source"
 								position={Position.Right}
 								isValidConnection={(edge) => edge.targetHandle === "invoke"}
+								className="justify-end"
 								id="exit"
 							>
-								<IconTriangle className="w-4 h-4 fill-white stroke-none rotate-90" />
+								{(connectedEdges?.some((edge) => edge.targetHandle === "invoke" && edge.source === id) && (
+									<IconTriangle className="w-4 h-4 fill-white stroke-none rotate-90" />
+								)) || <IconTriangle className="w-4 h-4 stroke-white stroke-2 rotate-90" />}
 							</NodeHandle>
 						</div>
 					)}
-					<div className="flex flex-row justify-between w-full mr-30">
-						<div className="flex flex-col space-y-1 h-1/2">
+					<div className="flex flex-row justify-between w-full space-x-4">
+						<div className="flex flex-col space-y-2">
 							{data.inputParameters?.map((param) => (
 								<NodeInputHandle
 									id={param.name}
 									key={param.name}
 									label={param.name}
+									connected={connectedEdges?.some((edge) => edge.targetHandle === param.name)}
 									entityType={param.type}
 									position={Position.Left}
 								/>
 							))}
 						</div>
-						<div className="flex flex-col space-y-1 h-1/2">
+						<div className="flex flex-col space-y-2">
 							{data.outputParameters?.map((param) => (
 								<NodeOutputHandle
+									id={param.name}
 									key={param.name}
 									label={param.name}
+									connected={connectedEdges?.some((edge) => edge.sourceHandle === param.name)}
 									entityType={param.type}
 									position={Position.Right}
 								/>
