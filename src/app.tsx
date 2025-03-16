@@ -1,28 +1,29 @@
 import {
-	addEdge,
-	applyEdgeChanges,
-	applyNodeChanges,
 	Background,
+	type Connection,
 	ConnectionLineType,
 	ConnectionMode,
 	Controls,
-	ReactFlow,
-	SelectionMode,
-	type Connection,
 	type Edge,
 	type EdgeRemoveChange,
 	type Node,
 	type OnConnect,
 	type OnEdgesChange,
 	type OnNodesChange,
+	ReactFlow,
+	SelectionMode,
+	addEdge,
+	applyEdgeChanges,
+	applyNodeChanges,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PellaView } from "./components/pella-view/pella-view";
-import { TagNode, type TagNodeProps } from "./components/tag-node/tag-node";
+import TagEdge from "./components/tag-node/tag-edge";
+import { TagNode, useNodeInputParams } from "./components/tag-node/tag-node";
 import { TagSelector } from "./components/tag-selector/tag-selector";
-import { atlasTags, PellaExecutionType, type PellaTag } from "./tags";
-import { parsePellaNode } from "./helpers/parse-pella-node";
+import { parsePellaNode } from "./helpers/parse-tag-node";
+import { type BaseTag, type PellaTag, type SystemTag, TagType, atlasTags, systemTags } from "./tags";
 
 export const App = () => {
 	const [nodes, setNodes] = useState<Node[]>([]);
@@ -31,6 +32,8 @@ export const App = () => {
 	const [contextOpen, setContextOpen] = useState(false);
 	const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
 	const nodeTypes = useMemo(() => ({ tag: TagNode }), []);
+	const edgeTypes = useMemo(() => ({ tag: TagEdge }), []);
+	const tags = new Array<BaseTag>().concat(systemTags).concat(atlasTags);
 
 	const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
 	const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
@@ -38,41 +41,78 @@ export const App = () => {
 		(connection) =>
 			setEdges((eds) => {
 				let newEdges = new Array<Edge>(...eds);
-				// remove previous edges if new edges are connected to the same handles
-				// i.e, only a single edge from an individual handle
-				const presentEdge = newEdges.find(
-					(edge) => edge.sourceHandle === connection.sourceHandle && edge.source === connection.source,
+				// node handles are only able to connect to other handles of the same type
+				// so getting either node is find
+				const sourceNode = nodes.find((node) => connection.source === node.id);
+				const outputParam = (sourceNode?.data as PellaTag | undefined)?.outputParameters?.find(
+					(param) => connection.sourceHandle === param.name,
 				);
-				if (presentEdge) {
-					const edgeRemoveChange: EdgeRemoveChange = { id: presentEdge.id, type: "remove" };
+
+				if (outputParam?.type == undefined) {
+					// flow handles dont have an entity type, and should only accept a single input
+					const presentSourceEdge = newEdges.find(
+						(edge) => edge.sourceHandle === connection.sourceHandle && edge.source === connection.source,
+					);
+
+					if (presentSourceEdge) {
+						const edgeRemoveChange: EdgeRemoveChange = { id: presentSourceEdge.id, type: "remove" };
+						newEdges = applyEdgeChanges([edgeRemoveChange], newEdges);
+					}
+				}
+
+				// remove previous edge if new edge connects to target handle
+				// target handles should only accept a single input
+				const presentTargetEdge = newEdges.find(
+					(edge) => edge.targetHandle === connection.targetHandle && edge.target === connection.target,
+				);
+
+				if (presentTargetEdge) {
+					const edgeRemoveChange: EdgeRemoveChange = { id: presentTargetEdge.id, type: "remove" };
 					newEdges = applyEdgeChanges([edgeRemoveChange], newEdges);
 				}
 
-				const outEdges = addEdge({ ...connection, type: ConnectionLineType.SmoothStep }, newEdges);
+				const outEdges = addEdge({ ...connection, type: "tag", data: { entityType: outputParam?.type } }, newEdges);
 				return outEdges;
 			}),
-		[],
+		[nodes],
 	);
 
 	useEffect(() => {
-		const executionNodes = edges
-			.reduce((acc, edge) => {
-				const sourceNode = nodes.find((node) => node.id === edge.source);
-				if (sourceNode != null && !acc.includes(sourceNode)) acc.push(sourceNode);
-				const targetNode = nodes.find((node) => node.id === edge.target);
-				if (targetNode != null && !acc.includes(targetNode)) acc.push(targetNode);
-				return acc;
-			}, new Array<Node>())
-			.filter((node): node is Node & { data: PellaTag } => {
-				const nodeData = node.data as unknown as PellaTag;
-				if (nodeData == null) return false;
-				if (nodeData.executionType === PellaExecutionType.Function) return true;
-				if (nodeData.executionType === PellaExecutionType.Setter) return true;
-				return false;
-			});
+		const flowEdges = edges.filter((edge) => edge.data?.entityType === undefined);
+		const invokerNode = nodes.find((node) => node.data?.type === TagType.System && node.data?.invoker === true);
+		if (invokerNode) {
+			const invokerEdges = flowEdges.filter((edge) => edge.source === invokerNode.id);
+			const orderedFlowNodes: (Node & { data: PellaTag })[] = [];
+			const visited = new Set<string>();
+			const traverseFlow = (node: Node & { data: PellaTag }) => {
+				if (visited.has(node.id)) return;
+				visited.add(node.id);
+				orderedFlowNodes.push(node);
 
-		setOutputLines(executionNodes.map((node) => parsePellaNode(node)));
-	}, [edges, nodes]);
+				const outgoingEdges = flowEdges.filter((edge) => edge.source === node.id);
+				for (const edge of outgoingEdges) {
+					const nextNode = nodes.find((n) => n.id === edge.target) as Node & { data: PellaTag };
+					if (nextNode) {
+						traverseFlow(nextNode);
+					}
+				}
+			};
+
+			for (const edge of invokerEdges) {
+				const nextNode = nodes.find((n) => n.id === edge.target) as Node & { data: PellaTag };
+				if (nextNode) {
+					traverseFlow(nextNode);
+				}
+			}
+
+			setOutputLines(
+				orderedFlowNodes.map((node) => {
+					const inputParams = useNodeInputParams.getState().inputParams.get(node.id);
+					return parsePellaNode(node, inputParams);
+				}),
+			);
+		}
+	}, [nodes, edges]);
 
 	const validateConnection = (edge: Connection | Edge): boolean => {
 		const sourceNode = nodes.find((node) => node.id === edge.source);
@@ -94,6 +134,7 @@ export const App = () => {
 			<ReactFlow
 				nodes={nodes}
 				nodeTypes={nodeTypes}
+				edgeTypes={edgeTypes}
 				connectionMode={ConnectionMode.Strict}
 				connectionLineType={ConnectionLineType.SmoothStep}
 				isValidConnection={validateConnection}
@@ -118,7 +159,7 @@ export const App = () => {
 				{contextOpen && (
 					<TagSelector
 						onTagSelect={() => setContextOpen(false)}
-						tags={atlasTags}
+						tags={tags}
 						position={contextPosition}
 						onExit={() => setContextOpen(false)}
 					/>

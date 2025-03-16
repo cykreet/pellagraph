@@ -1,20 +1,23 @@
 import { useReactFlow } from "@xyflow/react";
-import { useCallback, useEffect, useState } from "react";
-import { PellaExecutionType, type PellaTag } from "../../tags";
+import { useCallback, useEffect } from "react";
+import { type BaseTag, PellaExecutionType, type PellaTag, type SystemTag, TagType } from "../../tags";
 import type { TagNodeProps } from "../tag-node/tag-node";
 
 const tagSelectionClasses = {
 	[PellaExecutionType.Function]: "border-blue-500 bg-blue-900 text-blue-200",
 	[PellaExecutionType.Getter]: "border-green-500 bg-green-900 text-green-200",
-	[PellaExecutionType.Setter]: "border-blue-500 bg-blue-900 text-blue-200",
 };
 
-const TagSelection = ({ tag, onTagSelect }: { tag: PellaTag; onTagSelect: (tag: PellaTag) => void }) => {
+const TagSelection = ({ tag, onTagSelect }: { tag: BaseTag; onTagSelect: (tag: BaseTag) => void }) => {
 	const classes = tagSelectionClasses[tag.executionType];
 
 	return (
 		// biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
-		<div className={`w-full border-2 rounded-md p-1 cursor-pointer ${classes}`} onClick={() => onTagSelect(tag)}>
+		<div
+			key={tag.name}
+			className={`w-full border-2 rounded-md p-1 cursor-pointer ${classes}`}
+			onClick={() => onTagSelect(tag)}
+		>
 			{tag.name}
 		</div>
 	);
@@ -28,16 +31,18 @@ export const TagSelector = ({
 	onExit,
 	tags,
 	position,
-}: { onTagSelect: () => void; onExit: () => void; tags: PellaTag[]; position: { x: number; y: number } }) => {
+}: { onTagSelect: () => void; onExit: () => void; tags: BaseTag[]; position: { x: number; y: number } }) => {
 	const { addNodes, screenToFlowPosition } = useReactFlow();
 	const createNode = useCallback(
-		(tag: PellaTag) => {
+		(tag: PellaTag | SystemTag) => {
 			const nodeData: TagNodeProps["data"] = {
 				name: tag.name,
+				type: tag.type,
 				shortDescription: tag.shortDescription,
 				executionType: tag.executionType,
-				inputParameters: tag.inputParameters,
-				outputParameters: tag.outputParameters,
+				invoker: tag.type === TagType.System ? tag.invoker : undefined,
+				inputParameters: tag.type === TagType.Pella ? tag.inputParameters : undefined,
+				outputParameters: tag.type === TagType.Pella ? tag.outputParameters : undefined,
 			};
 
 			addNodes([

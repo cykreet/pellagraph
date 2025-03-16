@@ -1,15 +1,17 @@
 import { IconCircle, IconCircleDashed } from "@tabler/icons-react";
-import { Handle, type HandleProps } from "@xyflow/react";
+import { Handle, Position, type HandleProps } from "@xyflow/react";
 import clsx from "clsx";
-import type { PellaNodeEntityType } from "../../tags";
-import { nodeParameterClasses } from "./colours";
+import type { PellaEntityType } from "../../tags";
+import { nodeEntityClasses } from "./colours";
+import { useState } from "react";
 
 interface NodeParameterProps extends HandleProps {
 	label: string;
-	entityType: PellaNodeEntityType;
+	entityType: PellaEntityType;
 	hasInput?: boolean;
 	input?: string;
 	connected?: boolean;
+	onInputChange?: (value: string) => void;
 }
 
 export const NodeHandle = ({
@@ -18,61 +20,83 @@ export const NodeHandle = ({
 	hasInput,
 	inputDisabled,
 	input,
+	onInputChange,
 	...rest
-}: HandleProps & { hasInput?: boolean; input?: string; inputDisabled?: boolean }) => {
-	const classes = clsx(
-		"flex! transform-none! static! h-4! space-x-2 left-0! top-0! w-full! border-none! bg-transparent!",
-		className,
-	);
+}: HandleProps & {
+	hasInput?: boolean;
+	input?: string;
+	inputDisabled?: boolean;
+	onInputChange?: (value: string) => void;
+}) => {
+	const [inputValue, setInputValue] = useState(input ?? "");
+	const classes = clsx("relative flex flex-row items-center", className);
 
-	// todo: connection snapping not working from source to target
 	return (
-		<Handle className={classes} {...rest}>
-			<div className="pointer-events-none">{children}</div>
+		<div className={classes}>
+			<div className="relative">
+				{children}
+				<Handle className="!absolute !h-4 !w-4 !border-none !bg-transparent" {...rest} />
+			</div>
 			{hasInput && (
 				<input
 					type="text"
-					value={input}
+					value={inputValue}
 					disabled={inputDisabled}
-					className="bg-zinc-900 border-1 text-xs px-1 text-zinc-300 border-zinc-600 max-w-18 rounded disabled:text-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-800"
+					className="bg-zinc-900 ml-2 border-1 text-xs px-1 text-zinc-300 border-zinc-600 max-w-18 rounded disabled:text-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-800"
+					onChange={(event) => setInputValue(event.target.value)}
+					onBlur={() => onInputChange?.(inputValue)}
 				/>
 			)}
-		</Handle>
+		</div>
 	);
 };
 
-export const NodeInputHandle = ({ children, label, connected, ...props }: NodeParameterProps) => {
-	const paramClasses = nodeParameterClasses[props.entityType];
+export const NodeInputHandle = ({ children, label, connected, position, ...props }: NodeParameterProps) => {
+	const entityClasses = nodeEntityClasses[props.entityType];
 
 	return (
-		<NodeHandle type="target" id={props.entityType.toString()} hasInput inputDisabled={connected} {...props}>
-			<div className="flex flex-row items-center align-middle text-white space-x-2 pointer-events-none">
-				{(connected && (
-					<IconCircle
-						className={`w-4 h-4 ${paramClasses.fill} stroke-5 ${paramClasses.stroke}`}
-						style={{ strokeOpacity: "25%" }}
-					/>
-				)) || <IconCircleDashed className={`w-4 h-4 stroke-2 ${paramClasses.stroke}`} />}
-				<span className="text-xs">{label}</span>
-			</div>
-		</NodeHandle>
+		<div className="flex flex-row items-center">
+			<NodeHandle type="target" position={Position.Left} hasInput inputDisabled={connected} {...props}>
+				<div className="flex flex-row items-center text-white pointer-events-none">
+					<div className="relative w-4 h-4">
+						{(connected && (
+							<IconCircle
+								className={`w-4 h-4 ${entityClasses.fill} stroke-5 ${entityClasses.stroke}`}
+								style={{ strokeOpacity: "25%" }}
+							/>
+						)) || <IconCircleDashed className={`w-4 h-4 stroke-2 ${entityClasses.stroke}`} />}
+					</div>
+					<span className="text-xs ml-2">{label}</span>
+				</div>
+			</NodeHandle>
+		</div>
 	);
 };
 
-export const NodeOutputHandle = ({ children, label, connected, ...props }: Omit<NodeParameterProps, "input">) => {
-	const paramClasses = nodeParameterClasses[props.entityType];
+export const NodeOutputHandle = ({
+	children,
+	label,
+	connected,
+	position,
+	...props
+}: Omit<NodeParameterProps, "input">) => {
+	const entityClasses = nodeEntityClasses[props.entityType];
 
 	return (
-		<NodeHandle type="source" id={props.entityType.toString()} className="justify-end" {...props}>
-			<div className="flex flex-row items-center align-middle text-white gap-2 pointer-events-none">
-				<span className="text-xs text-right">{label}</span>
-				{(connected && (
-					<IconCircle
-						className={`w-4 h-4 ${paramClasses.fill} stroke-5 ${paramClasses.stroke}`}
-						style={{ strokeOpacity: "25%" }}
-					/>
-				)) || <IconCircleDashed className={`w-4 h-4 stroke-2 ${paramClasses.stroke}`} />}
-			</div>
-		</NodeHandle>
+		<div className="flex flex-row items-center justify-end">
+			<NodeHandle type="source" position={Position.Right} {...props}>
+				<div className="flex flex-row items-center text-white pointer-events-none">
+					<span className="text-xs mr-2">{label}</span>
+					<div className="relative w-4 h-4">
+						{(connected && (
+							<IconCircle
+								className={`w-4 h-4 ${entityClasses.fill} stroke-5 ${entityClasses.stroke}`}
+								style={{ strokeOpacity: "25%" }}
+							/>
+						)) || <IconCircleDashed className={`w-4 h-4 stroke-2 ${entityClasses.stroke}`} />}
+					</div>
+				</div>
+			</NodeHandle>
+		</div>
 	);
 };
