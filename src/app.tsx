@@ -16,27 +16,37 @@ import {
 	applyEdgeChanges,
 	applyNodeChanges,
 } from "@xyflow/react";
-import "@xyflow/react/dist/style.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PellaView } from "./components/pella-view/pella-view";
-import TagEdge from "./components/tag-node/tag-edge";
+import TagEdge, { type EdgeData } from "./components/tag-node/tag-edge";
 import { TagNode, useNodeInputParams } from "./components/tag-node/tag-node";
 import { TagSelector } from "./components/tag-selector/tag-selector";
-import { parsePellaNode } from "./helpers/parse-tag-node";
-import { type BaseTag, type PellaTag, type SystemTag, TagType, atlasTags, systemTags } from "./tags";
+import { type PellaInputReference, parsePellaNode } from "./helpers/parse-tag-node";
+import { PellaExecutionType, type PellaTag, type SystemTag, type Tag, TagType, atlasTags, systemTags } from "./tags";
 
 export const App = () => {
-	const [nodes, setNodes] = useState<Node[]>([]);
-	const [edges, setEdges] = useState<Edge[]>([]);
+	const [nodes, setNodes] = useState<Node<Tag>[]>([]);
+	const [edges, setEdges] = useState<Edge<EdgeData>[]>([]);
+	const inputParams = useNodeInputParams((state) => state.inputParams);
+
 	const [outputLines, setOutputLines] = useState<string[]>([]);
 	const [contextOpen, setContextOpen] = useState(false);
 	const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 });
+
 	const nodeTypes = useMemo(() => ({ tag: TagNode }), []);
 	const edgeTypes = useMemo(() => ({ tag: TagEdge }), []);
-	const tags = new Array<BaseTag>().concat(systemTags).concat(atlasTags);
 
-	const onNodesChange: OnNodesChange = useCallback((changes) => setNodes((nds) => applyNodeChanges(changes, nds)), []);
-	const onEdgesChange: OnEdgesChange = useCallback((changes) => setEdges((eds) => applyEdgeChanges(changes, eds)), []);
+	const tags = new Array<Tag>().concat(systemTags).concat(atlasTags);
+
+	const onNodesChange: OnNodesChange<Node<Tag>> = useCallback(
+		(changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+		[],
+	);
+	const onEdgesChange: OnEdgesChange<Edge<EdgeData>> = useCallback(
+		(changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+		[],
+	);
+
 	const onConnect: OnConnect = useCallback(
 		(connection) =>
 			setEdges((eds) => {
@@ -79,40 +89,98 @@ export const App = () => {
 
 	useEffect(() => {
 		const flowEdges = edges.filter((edge) => edge.data?.entityType === undefined);
-		const invokerNode = nodes.find((node) => node.data?.type === TagType.System && node.data?.invoker === true);
+		const valueEdges = edges.filter((edge) => edge.data?.entityType !== undefined);
+		const invokerNode = nodes.find(
+			(node): node is Node<SystemTag> => node.data.type === TagType.System && node.data.invoker === true,
+		);
+
 		if (invokerNode) {
 			const invokerEdges = flowEdges.filter((edge) => edge.source === invokerNode.id);
-			const orderedFlowNodes: (Node & { data: PellaTag })[] = [];
+			const orderedFlowNodes: Node<PellaTag>[] = [];
 			const visited = new Set<string>();
-			const traverseFlow = (node: Node & { data: PellaTag }) => {
+
+			const traverseFlow = (node: Node<PellaTag>) => {
 				if (visited.has(node.id)) return;
+				if (node.data.executionType !== PellaExecutionType.Function) return;
+
 				visited.add(node.id);
 				orderedFlowNodes.push(node);
 
 				const outgoingEdges = flowEdges.filter((edge) => edge.source === node.id);
 				for (const edge of outgoingEdges) {
-					const nextNode = nodes.find((n) => n.id === edge.target) as Node & { data: PellaTag };
-					if (nextNode) {
+					const nextNode = nodes.find((n) => n.id === edge.target) as Node<PellaTag> | undefined;
+					if (nextNode?.data.type === TagType.Pella) {
 						traverseFlow(nextNode);
 					}
 				}
 			};
 
 			for (const edge of invokerEdges) {
-				const nextNode = nodes.find((n) => n.id === edge.target) as Node & { data: PellaTag };
-				if (nextNode) {
+				const nextNode = nodes.find((n) => n.id === edge.target) as Node<PellaTag> | undefined;
+				if (nextNode?.data.type === TagType.Pella) {
 					traverseFlow(nextNode);
 				}
 			}
 
-			setOutputLines(
-				orderedFlowNodes.map((node) => {
-					const inputParams = useNodeInputParams.getState().inputParams.get(node.id);
-					return parsePellaNode(node, inputParams);
-				}),
-			);
+			const emittedValueNodes = new Set<string>();
+			const output: string[] = [];
+
+			const appendValueNode = (valueNode: Node<PellaTag>) => {
+				if (emittedValueNodes.has(valueNode.id)) return;
+
+				emittedValueNodes.add(valueNode.id);
+				const valueNodeInputParams = inputParams.get(valueNode.id);
+
+				const references: PellaInputReference[] = [];
+				for (const edge of valueEdges.filter((candidate) => candidate.target === valueNode.id)) {
+					const sourceNode = nodes.find((node) => node.id === edge.source);
+					if (
+						sourceNode?.data.type !== TagType.Pella ||
+						(sourceNode.data.executionType !== PellaExecutionType.Getter &&
+							sourceNode.data.executionType !== PellaExecutionType.Variable)
+					)
+						continue;
+
+					const sourceValueNode = sourceNode as Node<PellaTag>;
+					appendValueNode(sourceValueNode);
+					references.push({
+						targetHandle: edge.targetHandle,
+						sourceNode: sourceValueNode,
+						sourceInputParams: inputParams.get(sourceValueNode.id),
+					});
+				}
+
+				const nodeInputParams = inputParams.get(valueNode.id);
+				output.push(parsePellaNode(valueNode, nodeInputParams, references));
+			};
+
+			for (const node of orderedFlowNodes) {
+				const references: PellaInputReference[] = [];
+				for (const edge of valueEdges.filter((candidate) => candidate.target === node.id)) {
+					const sourceNode = nodes.find((candidate) => candidate.id === edge.source);
+					if (
+						sourceNode?.data.type !== TagType.Pella ||
+						(sourceNode.data.executionType !== PellaExecutionType.Getter &&
+							sourceNode.data.executionType !== PellaExecutionType.Variable)
+					)
+						continue;
+
+					const valueNode = sourceNode as Node<PellaTag>;
+					appendValueNode(valueNode);
+					references.push({
+						targetHandle: edge.targetHandle,
+						sourceNode: valueNode,
+						sourceInputParams: inputParams.get(valueNode.id),
+					});
+				}
+
+				const nodeInputParams = inputParams.get(node.id);
+				output.push(parsePellaNode(node, nodeInputParams, references));
+			}
+
+			setOutputLines(output);
 		}
-	}, [nodes, edges]);
+	}, [nodes, edges, inputParams]);
 
 	const validateConnection = (edge: Connection | Edge): boolean => {
 		const sourceNode = nodes.find((node) => node.id === edge.source);

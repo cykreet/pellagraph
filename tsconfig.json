@@ -9,7 +9,6 @@
 		"noUncheckedIndexedAccess": false,
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
-		"baseUrl": "./",
 		"declaration": false,
 		"paths": {
 			"#root/*": ["./src/*"],

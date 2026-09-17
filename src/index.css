@@ -1,3 +1,4 @@
+@import url("@xyflow/react/dist/style.css");
 @import "tailwindcss";
 
 html,
@@ -10,4 +11,25 @@ body {
 #root {
 	width: 100vw;
 	height: 100vh;
+}
+
+.react-flow__node {
+	@apply bg-zinc-800/95 rounded-md border-2 border-zinc-700 p-2;
+}
+
+.react-flow__node.selectable:focus {
+	@apply border-zinc-400;
+}
+
+.react-flow__node.selectable:focus:active {
+	@apply border-zinc-400;
+}
+
+.react-flow__node.selectable:hover,
+.react-flow__node.draggable:hover {
+	@apply border-zinc-500;
+}
+
+.react-flow__node.selectable.selected {
+	@apply border-zinc-400;
 }

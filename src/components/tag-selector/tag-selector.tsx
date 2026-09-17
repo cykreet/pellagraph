@@ -1,6 +1,6 @@
 import { useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect } from "react";
-import { type BaseTag, PellaExecutionType, type PellaTag, type SystemTag, TagType } from "../../tags";
+import { PellaExecutionType, type PellaTag, type SystemTag, type Tag, TagType } from "../../tags";
 import type { TagNodeProps } from "../tag-node/tag-node";
 
 const tagSelectionClasses = {
@@ -8,7 +8,7 @@ const tagSelectionClasses = {
 	[PellaExecutionType.Getter]: "border-green-500 bg-green-900 text-green-200",
 };
 
-const TagSelection = ({ tag, onTagSelect }: { tag: BaseTag; onTagSelect: (tag: BaseTag) => void }) => {
+const TagSelection = ({ tag, onTagSelect }: { tag: Tag; onTagSelect: (tag: Tag) => void }) => {
 	const classes = tagSelectionClasses[tag.executionType];
 
 	return (
@@ -31,10 +31,10 @@ export const TagSelector = ({
 	onExit,
 	tags,
 	position,
-}: { onTagSelect: () => void; onExit: () => void; tags: BaseTag[]; position: { x: number; y: number } }) => {
+}: { onTagSelect: () => void; onExit: () => void; tags: Tag[]; position: { x: number; y: number } }) => {
 	const { addNodes, screenToFlowPosition } = useReactFlow();
 	const createNode = useCallback(
-		(tag: PellaTag | SystemTag) => {
+		(tag: Tag) => {
 			const nodeData: TagNodeProps["data"] = {
 				name: tag.name,
 				type: tag.type,

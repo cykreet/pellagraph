@@ -2,11 +2,11 @@ import { IconFunction, IconTriangle } from "@tabler/icons-react";
 import { type Edge, type NodeProps, Position, useEdges } from "@xyflow/react";
 import { useEffect, useState } from "react";
 import { create } from "zustand";
-import { PellaEntityType, PellaExecutionType, type PellaTag, type SystemTag, TagType } from "../../tags";
+import { PellaEntityType, PellaExecutionType, type PellaTag, type SystemTag, type Tag, TagType } from "../../tags";
 import { nodeEntityClasses } from "./colours";
 import { NodeHandle, NodeInputHandle, NodeOutputHandle } from "./node-handle";
 
-export type TagNodeProps = NodeProps & { data: PellaTag | SystemTag };
+export type TagNodeProps = NodeProps & { data: Tag };
 
 const isPellaTag = (tag: PellaTag | SystemTag): tag is PellaTag => {
 	return tag.type === TagType.Pella;
@@ -22,7 +22,9 @@ interface PellaParametersProps {
 	connectedEdges?: Edge[];
 }
 
-export const useNodeInputParams = create(() => ({ inputParams: new Map<string, { name: string; value: any }[]>() }));
+export const useNodeInputParams = create(() => ({
+	inputParams: new Map<string, { name: string; value: string; type: PellaEntityType }[]>(),
+}));
 
 const PellaParameters = ({ data, id, connectedEdges }: PellaParametersProps) => {
 	return (
@@ -44,10 +46,14 @@ const PellaParameters = ({ data, id, connectedEdges }: PellaParametersProps) => 
 							useNodeInputParams.setState((prev) => {
 								const nodeInputParams = prev.inputParams.get(id) || [];
 								const inputParam = nodeInputParams.find((p) => p.name === param.pellaName);
+
 								if (inputParam) {
 									inputParam.value = value;
 									nodeInputParams[nodeInputParams.indexOf(inputParam)] = inputParam;
-								} else nodeInputParams.push({ name: param.pellaName, value });
+									// todo: this should automatically infer type from the tag input param
+									// maybe even support implicit type conversion: if a boolean is connected to a string input, try parse it
+								} else nodeInputParams.push({ name: param.pellaName, value, type: PellaEntityType.String });
+
 								return { inputParams: new Map(prev.inputParams).set(id, nodeInputParams) };
 							})
 						}
@@ -81,6 +87,7 @@ export const TagNode = ({ data, id }: TagNodeProps) => {
 		setConnectedEdges(nodeEdges);
 	}, [edges, id]);
 
+	const isFlowNode = data.executionType === PellaExecutionType.Function;
 	const isFunction = data.executionType === PellaExecutionType.Function;
 	const isInvoker = isSystemTag(data) && data.invoker === true;
 	const tagClasses = isFunction
@@ -89,9 +96,7 @@ export const TagNode = ({ data, id }: TagNodeProps) => {
 
 	return (
 		<div className="flex max-w-2xs">
-			<div
-				className={`flex flex-col rounded-md border-2 border-zinc-700 p-2 space-y-2 bg-zinc-800/95 ${tagClasses.stroke}`}
-			>
+			<div className={`flex flex-col space-y-2 bg-zinc-800/95 ${tagClasses.stroke}`}>
 				<div className="flex flex-col space-y-2">
 					<div className="flex flex-row items-center space-x-2">
 						{isFunction ? (
@@ -102,7 +107,7 @@ export const TagNode = ({ data, id }: TagNodeProps) => {
 						<span className="text-sm text-white">{data.name}</span>
 					</div>
 					<span className="text-xs text-zinc-400">{data.shortDescription}</span>
-					{isFunction && (
+					{isFlowNode && (
 						<div className="flex flex-row justify-between w-full">
 							{(!isInvoker || isPellaTag(data)) && (
 								<NodeHandle

@@ -1,31 +1,35 @@
-export interface BaseTag {
+export type BaseTag = {
 	name: string;
 	type: TagType;
 	shortDescription: string;
 	executionType: PellaExecutionType;
-}
+};
 
-export interface PellaTag extends BaseTag {
+export type PellaTag = BaseTag & {
 	type: TagType.Pella;
 	inputParameters?: {
 		name: string;
 		pellaName: string;
 		type: PellaEntityType;
+		optional?: boolean;
 	}[];
 	outputParameters?: {
 		name: string;
 		type: PellaEntityType;
 	}[];
-}
+};
 
-export interface SystemTag extends BaseTag {
+export type SystemTag = BaseTag & {
 	type: TagType.System;
 	invoker?: boolean;
-}
+};
+
+export type Tag = PellaTag | SystemTag;
 
 export enum TagType {
 	System,
 	Pella,
+	Util,
 }
 
 export enum PellaEntityType {
@@ -41,6 +45,7 @@ export enum PellaEntityType {
 export enum PellaExecutionType {
 	Getter,
 	Function,
+	Variable,
 }
 
 export const systemTags: SystemTag[] = [
@@ -54,6 +59,49 @@ export const systemTags: SystemTag[] = [
 ];
 
 export const atlasTags: PellaTag[] = [
+	{
+		name: "Declare Variable",
+		type: TagType.Pella,
+		shortDescription: "Define a variable.",
+		executionType: PellaExecutionType.Variable,
+		inputParameters: [
+			{
+				name: "Key",
+				pellaName: "key",
+				type: PellaEntityType.String,
+			},
+			{
+				name: "Value",
+				pellaName: "value",
+				type: PellaEntityType.String,
+			},
+		],
+		outputParameters: [
+			{
+				name: "Value",
+				type: PellaEntityType.String,
+			},
+		],
+	},
+	// {
+	// 	name: "Get variable",
+	// 	type: TagType.Pella,
+	// 	shortDescription: "Retrieve a variable value.",
+	// 	executionType: PellaExecutionType.Getter,
+	// 	inputParameters: [
+	// 		{
+	// 			name: "Key",
+	// 			pellaName: "key",
+	// 			type: PellaEntityType.String,
+	// 		},
+	// 	],
+	// 	outputParameters: [
+	// 		{
+	// 			name: "Value",
+	// 			type: PellaEntityType.String,
+	// 		},
+	// 	],
+	// },
 	{
 		name: "store.set",
 		type: TagType.Pella,
@@ -103,6 +151,25 @@ export const atlasTags: PellaTag[] = [
 				type: PellaEntityType.String,
 			},
 		],
+	},
+	{
+		name: "responder.text",
+		type: TagType.Pella,
+		shortDescription: "Appends text to the output message.",
+		executionType: PellaExecutionType.Function,
+		inputParameters: [
+			{
+				name: "Message",
+				pellaName: "message",
+				type: PellaEntityType.String,
+			},
+		],
+	},
+	{
+		name: "responder.send",
+		type: TagType.Pella,
+		shortDescription: "Send the message immediately.",
+		executionType: PellaExecutionType.Function,
 	},
 	{
 		name: "role.id",

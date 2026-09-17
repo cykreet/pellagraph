@@ -2,7 +2,11 @@ import { BaseEdge, type EdgeProps, getSmoothStepPath } from "@xyflow/react";
 import { nodeEntityClasses } from "./colours";
 import type { PellaEntityType } from "../../tags";
 
-export type TagEdgeProps = EdgeProps & { data: { entityType?: PellaEntityType } };
+export type EdgeData = {
+	entityType?: PellaEntityType;
+};
+
+export type TagEdgeProps = EdgeProps & { data: EdgeData };
 
 export default function TagEdge(props: TagEdgeProps) {
 	const entityClasses = nodeEntityClasses[props.data.entityType ?? "default"];

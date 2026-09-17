@@ -5,7 +5,7 @@ import type { PellaEntityType } from "../../tags";
 import { nodeEntityClasses } from "./colours";
 import { useState } from "react";
 
-interface NodeParameterProps extends HandleProps {
+interface NodeParameterProps extends Omit<HandleProps, "type"> {
 	label: string;
 	entityType: PellaEntityType;
 	hasInput?: boolean;
@@ -42,7 +42,7 @@ export const NodeHandle = ({
 					type="text"
 					value={inputValue}
 					disabled={inputDisabled}
-					className="bg-zinc-900 ml-2 border-1 text-xs px-1 text-zinc-300 border-zinc-600 max-w-18 rounded disabled:text-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-800"
+					className="bg-zinc-900 ml-2 border text-xs px-1 text-zinc-300 border-zinc-600 max-w-18 rounded disabled:text-zinc-400 disabled:cursor-not-allowed disabled:bg-zinc-800"
 					onChange={(event) => setInputValue(event.target.value)}
 					onBlur={() => onInputChange?.(inputValue)}
 				/>
